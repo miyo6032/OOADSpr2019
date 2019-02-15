@@ -8,29 +8,12 @@ public class Main
 {
     public static void main(String[] args)
     {
-		// This part of the code is a direct port from the original python version
-        List <Shape> shapesList = new ArrayList<Shape>(); 
-        shapesList.add(new Square()); 
-        shapesList.add(new Circle());
-        shapesList.add(new Triangle());  
+		ShapeSorter sorter = new ShapeSorter();
+        sorter.addShape(new Square()); 
+        sorter.addShape(new Circle());
+        sorter.addShape(new Triangle());  
 
-		// Sorts based on the Comparator defined below
-        Collections.sort(shapesList, new SortByEdges());  
-
-        for (Shape s : shapesList)
-        {
-        	s.displayFunction(); 
-        }
-	}
-	
-	// A comparator that determines which shapes are greater based on the number of edges
-	// Behaves similarly to a python anonymous lambda function
-	public static class SortByEdges implements Comparator<Shape> 
-	{
-		public int compare(Shape a, Shape b)
-		{
-			return a.getEdges()-b.getEdges(); 
-		}
+		sorter.displayShapes();
 	}
 }
 
