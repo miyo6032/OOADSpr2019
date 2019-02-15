@@ -7,4 +7,4 @@ Homework 1:
 To make the python run, you need to install the abstract base class module (abc). Run "pip install Lib".  
 
 Homework 2: 
-Simply just execute this Java code and run the following command: java homeworkTwo.java
+Simply just execute this Java code by running the following command: java homeworkTwo.java
