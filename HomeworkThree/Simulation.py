@@ -29,10 +29,32 @@ class Tool:
     def __repr__(self):
         return self.__str__()
 
+# Responsible for keeping track of tools and making sure there are no more tools than the max size
 class Inventory:
     def __init__(self, max_size):
         self.tools = []
         self.max_size = max_size
+
+    # Adds a new tool to the toolset
+    # Returns whether the addition was successful
+    def add_tool(self, tool):
+        if not self.full():
+            self.tools.append(tool)
+            return True
+        return False
+
+    # Returns whether the remove was successful
+    def remove_tool(self, tool):
+        if tool in self.tools:
+            self.tools.remove(tool)
+            return True
+        return False
+
+    def full(self):
+        return len(self.tools) == self.max_size - 1
+
+    def empty(self):
+        return len(self.tools) == 0
 
 #NOTE customer should probably keep track of how long the tools have been rented, and when they should be returned
 class CustomerType:
