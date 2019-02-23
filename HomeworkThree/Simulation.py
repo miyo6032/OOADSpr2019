@@ -3,6 +3,7 @@
 #Bruce Montgomery, Spring 2019
 
 from random import randint
+import numpy as np
 
 customer_max_tools = 3
 store_max_tools = 20
@@ -73,7 +74,7 @@ class Rental:
         return self.days_rented() * cost_per_day
 
     def __str__(self):
-        return "Rental Info: " + len(self.tools) + " tools for " + self.days_rented() + " days for $" + self.cost()
+        return "Rental Info: {} tools rented from day {} to day {} for ${}".format(len(self.tools), self.start_date, self.return_date, self.cost())
 
     def __repr__(self):
         return self.__str__()
@@ -110,12 +111,12 @@ class Customer:
     def can_rent_tools(self, store):
         return len(store.inventory.tools) >= self.customer_type.tool_rent_max and self.get_tools_rented() < customer_max_tools
 
-    # The customer is presented the tools from the store, and chooses some to rent
+    # The customer is presented the tools from the store, and chooses some to rent randomly
     def rent_tools(self, store, current_date):
-        if not self.can_rent_tools(store.tools):
+        if not self.can_rent_tools(store):
             print("Warning: could not rent tools to customer " + self.name)
         amount = randint(self.customer_type.tool_rent_min, self.customer_type.tool_rent_max)
-        tools_to_rent = [randint(0, len(store.tools) - 1) for i in range(amount)]
+        tools_to_rent = np.random.choice(store.inventory.tools, replace=False, size=amount)
         rent_time = randint(self.customer_type.time_rented_min, self.customer_type.time_rented_max)
         rental = Rental(tools_to_rent, current_date, current_date + rent_time)
         store.make_rental(rental)
@@ -169,5 +170,36 @@ class Simulation:
         self.days = 0
         self.store = Store()
 
+    def start_simulation(self, days_to_simulate):
+        pass
+
+# A scrappy test program of what the simulation object might do
 if __name__ == '__main__':
-    pass
+
+    # Setup the objects
+    cat_concrete = ToolCategory("Concrete", 40)
+    cat_woodwork = ToolCategory("Woodwork", 25)
+    tool_1 = Tool("concrete_tool_1", cat_concrete)
+    tool_2 = Tool("woodwork_tool_1", cat_woodwork)
+    store = Store()
+    store.inventory.add_tool(tool_1)
+    store.inventory.add_tool(tool_2)
+    customer = Customer("bob", CustomerType("Casual", 1, 2, 1, 2))
+    
+    print("Initial {}".format(store))
+
+    # Simulate 35 days
+    for i in range(35):
+        customer.return_tools(store, i)
+        if customer.can_rent_tools(store):
+            customer.rent_tools(store, i)
+
+    print("Final {}".format(store))
+
+    print("Completed Rentals: ")
+    for rental in store.complete_rentals:
+        print(rental)
+
+    print("Active Rentals: ")
+    for rental in store.active_rentals:
+        print(rental)
