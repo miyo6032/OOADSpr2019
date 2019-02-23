@@ -61,7 +61,7 @@ class Inventory:
 # Responsible for keeping track of a rental, which contains rental day and cost
 class Rental:
     def __init__(self, tools, start_date, return_date):
-        self.tools = []
+        self.tools = tools
         self.return_date = return_date
         self.start_date = start_date
 
@@ -69,8 +69,8 @@ class Rental:
         return self.return_date - self.start_date
 
     def cost(self):
-        cost_per_day = sum([tool.tool_cat.price for tool in self.tools])
-        return self.days_rented * cost_per_day
+        cost_per_day = sum([tool.category.price for tool in self.tools])
+        return self.days_rented() * cost_per_day
 
     def __str__(self):
         return "Rental Info: " + len(self.tools) + " tools for " + self.days_rented() + " days for $" + self.cost()
@@ -106,6 +106,7 @@ class Customer:
         return sum([len(rental.tools) for rental in self.active_rentals])
 
     # If the customer can rent more tools, and if there are tools left to rent from the store
+    # NOTE: Having a customer have to know about the store may not be the greatest thing
     def can_rent_tools(self, store):
         return len(store.inventory.tools) >= self.customer_type.tool_rent_max and self.get_tools_rented() < customer_max_tools
 
@@ -137,12 +138,31 @@ class Store:
     def __init__(self):
         self.customers = []
         self.inventory = Inventory(store_max_tools)
+        self.money = 0
+        self.complete_rentals = []
+        self.active_rentals = []
 
+    # Process the rental request made by the customer
     def make_rental(self, rental):
-        pass
+        self.money += rental.cost()
+        for tool in rental.tools:
+            self.inventory.remove_tool(tool)
+        self.active_rentals.append(rental)
 
+    # Recieve the tools and complete the rental
     def return_rental(self, rental):
-        pass
+        for tool in rental.tools:
+            self.inventory.add_tool(tool)
+        self.active_rentals.remove(rental)
+        self.complete_rentals.append(rental)
+
+    def __str__(self):
+        return "Store: \n" \
+        + "Inventory: {}\n".format(len(self.inventory.tools)) \
+        + "Income: {}\n".format(self.money)
+
+    def __repr__(self):
+        return self.__str__()
 
 class Simulation:
     def __init__(self):
