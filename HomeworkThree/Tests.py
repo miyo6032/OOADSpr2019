@@ -25,10 +25,10 @@ class TestInventory(unittest.TestCase):
 
 class TestCustomer(unittest.TestCase):
     def setUp(self):
-        self.customer = Customer("bob", CustomerType("Casual", 1, 2, 1, 2), 3)
+        self.customer = Customer("bob", CustomerType("Casual", 1, 2, 1, 2))
 
     def test_customer_can_rent(self):
-        self.assertEqual(self.customer.can_rent_tools([]), False)
+        self.assertEqual(self.customer.can_rent_tools(Store()), False)
 
 if __name__ == '__main__':
     unittest.main()

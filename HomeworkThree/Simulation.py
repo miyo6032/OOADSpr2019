@@ -58,8 +58,27 @@ class Inventory:
     def empty(self):
         return len(self.tools) == 0
 
-#NOTE customer should probably keep track of how long the tools have been rented, and when they should be returned
-# The way this is set up couples a lot of attributes with customer type
+# Responsible for keeping track of a rental, which contains rental day and cost
+class Rental:
+    def __init__(self, tools, start_date, return_date):
+        self.tools = []
+        self.return_date = return_date
+        self.start_date = start_date
+
+    def days_rented(self):
+        return self.return_date - self.start_date
+
+    def cost(self):
+        cost_per_day = sum([tool.tool_cat.price for tool in self.tools])
+        return self.days_rented * cost_per_day
+
+    def __str__(self):
+        return "Rental Info: " + len(self.tools) + " tools for " + self.days_rented() + " days for $" + self.cost()
+
+    def __repr__(self):
+        return self.__str__()
+
+# This Customertype design this is set up couples a lot of attributes with customer type
 # We assumed that because the tool renting was dependent on the customer
 # type it would be okay, but if this every changed, we would be in trouble
 class CustomerType:
@@ -78,28 +97,35 @@ class CustomerType:
 
 # Responsible for 'going' to the store and either returning or renting tools when it is time
 class Customer:
-    def __init__(self, name, customer_type, customer_max_tools):
+    def __init__(self, name, customer_type):
         self.name = name
-        self.inventory = Inventory(customer_max_tools)
+        self.active_rentals = []
         self.customer_type = customer_type
 
-    def can_rent_tools(self, tools):
-        return len(tools) >= self.inventory.max_size and not self.inventory.full()
+    def get_tools_rented(self):
+        return sum([len(rental.tools) for rental in self.active_rentals])
+
+    # If the customer can rent more tools, and if there are tools left to rent from the store
+    def can_rent_tools(self, store):
+        return len(store.inventory.tools) >= self.customer_type.tool_rent_max and self.get_tools_rented() < customer_max_tools
 
     # The customer is presented the tools from the store, and chooses some to rent
-    def rent_tools(self, store):
+    def rent_tools(self, store, current_date):
         if not self.can_rent_tools(store.tools):
             print("Warning: could not rent tools to customer " + self.name)
         amount = randint(self.customer_type.tool_rent_min, self.customer_type.tool_rent_max)
-        time = randint(self.customer_type.time_rented_min, self.customer_type.time_rented_max)
-        for i in range(amount):
-            store.rent_tool(randint(0, len(store.tools) - 1), time)
+        tools_to_rent = [randint(0, len(store.tools) - 1) for i in range(amount)]
+        rent_time = randint(self.customer_type.time_rented_min, self.customer_type.time_rented_max)
+        rental = Rental(tools_to_rent, current_date, current_date + rent_time)
+        store.make_rental(rental)
+        self.active_rentals.append(rental)
 
-    # The customer returns each tool
-    def return_tools(self, store):
-        for tool in self.inventory.tools:
-            self.inventory.remove_tool(tool)
-            store.return_tool(tool)
+    # The customer returns each tool, and the store is updated as well
+    def return_tools(self, store, current_date):
+        for rental in self.active_rentals:
+            if rental.return_date == current_date:
+                store.return_rental(rental)
+                self.active_rentals.remove(rental)
 
     def __str__(self):
         return self.name
@@ -112,10 +138,10 @@ class Store:
         self.customers = []
         self.inventory = Inventory(store_max_tools)
 
-    def rent_tool(self, tool, time):
+    def make_rental(self, rental):
         pass
 
-    def return_tool(self, tool):
+    def return_rental(self, rental):
         pass
 
 class Simulation:
