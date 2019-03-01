@@ -9,3 +9,7 @@ Simply just execute this Python code by running the following command: python Ho
 
 Homework 2: 
 The file has been ported to a bunch of Java files that have already been compiled. In the HomeworkTwo directory run "java Main" to run the already compiled Java. If you want to compile again, try "javac Main.java"
+
+Homework 3:
+To make the python run, you need to install the abstract base class module (abc). Run "pip install Lib". 
+The simulation can be executed by running Simulation.py in the HomeworkThree folder
