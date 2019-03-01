@@ -3,7 +3,8 @@
 #Bruce Montgomery, Spring 2019
 
 from random import randint
-import numpy as np
+import numpy as np 
+from abc import ABC, abstractmethod
 
 customer_max_tools = 3
 store_max_tools = 20
@@ -61,10 +62,11 @@ class Inventory:
 
 # Responsible for keeping track of a rental, which contains rental day and cost
 class Rental:
-    def __init__(self, tools, start_date, return_date):
+    def __init__(self, tools, start_date, return_date, customer):
         self.tools = tools
         self.return_date = return_date
-        self.start_date = start_date
+        self.start_date = start_date 
+        self.customer = customer
 
     def days_rented(self):
         return self.return_date - self.start_date
@@ -74,34 +76,20 @@ class Rental:
         return self.days_rented() * cost_per_day
 
     def __str__(self):
-        return "Rental Info: {} tools rented from day {} to day {} for ${}".format(len(self.tools), self.start_date, self.return_date, self.cost())
-
-    def __repr__(self):
-        return self.__str__()
-
-# This Customertype design this is set up couples a lot of attributes with customer type
-# We assumed that because the tool renting was dependent on the customer
-# type it would be okay, but if this every changed, we would be in trouble
-class CustomerType:
-    def __init__(self, type_name, tool_rent_min, tool_rent_max, time_rented_min, time_rented_max):
-        self.type_name = type_name
-        self.tool_rent_min = tool_rent_min
-        self.tool_rent_max = tool_rent_max
-        self.time_rented_min = time_rented_min
-        self.time_rented_max = time_rented_max
-
-    def __str__(self):
-        return self.type_name
+        return "Rental Info for {}: {} tools rented from day {} to day {} for ${}".format(self.customer, len(self.tools), self.start_date, self.return_date, self.cost())
 
     def __repr__(self):
         return self.__str__()
 
 # Responsible for 'going' to the store and either returning or renting tools when it is time
-class Customer:
-    def __init__(self, name, customer_type):
+class Customer(ABC):
+    def __init__(self, name):
         self.name = name
         self.active_rentals = []
-        self.customer_type = customer_type
+        self.tool_rent_min = 0
+        self.tool_rent_max = 0
+        self.time_rented_min = 0
+        self.time_rented_max = 0
 
     def get_tools_rented(self):
         return sum([len(rental.tools) for rental in self.active_rentals])
@@ -109,16 +97,16 @@ class Customer:
     # If the customer can rent more tools, and if there are tools left to rent from the store
     # NOTE: Having a customer have to know about the store may not be the greatest thing
     def can_rent_tools(self, store):
-        return len(store.inventory.tools) >= self.customer_type.tool_rent_max and self.get_tools_rented() < customer_max_tools
+        return len(store.inventory.tools) >= self.tool_rent_max and self.get_tools_rented() < customer_max_tools
 
     # The customer is presented the tools from the store, and chooses some to rent randomly
     def rent_tools(self, store, current_date):
         if not self.can_rent_tools(store):
             print("Warning: could not rent tools to customer " + self.name)
-        amount = randint(self.customer_type.tool_rent_min, self.customer_type.tool_rent_max)
+        amount = randint(self.tool_rent_min, self.tool_rent_max)
         tools_to_rent = np.random.choice(store.inventory.tools, replace=False, size=amount)
-        rent_time = randint(self.customer_type.time_rented_min, self.customer_type.time_rented_max)
-        rental = Rental(tools_to_rent, current_date, current_date + rent_time)
+        rent_time = randint(self.time_rented_min, self.time_rented_max)
+        rental = Rental(tools_to_rent, current_date, current_date + rent_time, self)
         store.make_rental(rental)
         self.active_rentals.append(rental)
 
@@ -127,7 +115,14 @@ class Customer:
         for rental in self.active_rentals:
             if rental.return_date == current_date:
                 store.return_rental(rental)
-                self.active_rentals.remove(rental)
+                self.active_rentals.remove(rental) 
+
+    def update(self, store, current_date): 
+        self.return_tools(store, current_date) 
+        randomDay = randint(0, 7)
+        
+        if (randomDay == 0 and self.can_rent_tools(store)):
+            self.rent_tools(store, current_date)
 
     def __str__(self):
         return self.name
@@ -135,13 +130,41 @@ class Customer:
     def __repr__(self):
         return self.__str__()
 
-class Store:
+class CustomerCasual(Customer):
+    def __init__(self, name):
+        super().__init__(name)
+        self.tool_rent_min = 1
+        self.tool_rent_max = 2
+        self.time_rented_min = 1
+        self.time_rented_max = 2
+
+class CustomerBusiness(Customer):
+    def __init__(self, name):
+        super().__init__(name)
+        self.tool_rent_min = 3
+        self.tool_rent_max = 3
+        self.time_rented_min = 7
+        self.time_rented_max = 7
+
+class CustomerRegular(Customer):
+    def __init__(self, name):
+        super().__init__(name)
+        self.tool_rent_min = 1
+        self.tool_rent_max = 3
+        self.time_rented_min = 3
+        self.time_rented_max = 5
+
+class Store(ABC):
     def __init__(self):
-        self.customers = []
         self.inventory = Inventory(store_max_tools)
         self.money = 0
         self.complete_rentals = []
         self.active_rentals = []
+        self.make_tools()
+
+    @abstractmethod
+    def make_tools(self):
+        pass
 
     # Process the rental request made by the customer
     def make_rental(self, rental):
@@ -165,41 +188,108 @@ class Store:
     def __repr__(self):
         return self.__str__()
 
-class Simulation:
-    def __init__(self):
-        self.days = 0
-        self.store = Store()
+class ToolStore(Store):
+    def make_tools(self):
+        cat_concrete = ToolCategory("Concrete", 40)
+        cat_woodwork = ToolCategory("Woodwork", 25) 
+        cat_painting = ToolCategory("Painting", 30) 
+        cat_plumbing = ToolCategory("Plumbing", 55) 
+        cat_yardwork = ToolCategory("Yardwork", 60)
 
-    def start_simulation(self, days_to_simulate):
-        pass
+        tool_1 = Tool("concrete_tool_1", cat_concrete)
+        tool_2 = Tool("concrete_tool_2", cat_concrete) 
+        tool_3 = Tool("concrete_tool_3", cat_concrete)
+        tool_4 = Tool("concrete_tool_4", cat_concrete)
 
-# A scrappy test program of what the simulation object might do
-if __name__ == '__main__':
-
-    # Setup the objects
-    cat_concrete = ToolCategory("Concrete", 40)
-    cat_woodwork = ToolCategory("Woodwork", 25)
-    tool_1 = Tool("concrete_tool_1", cat_concrete)
-    tool_2 = Tool("woodwork_tool_1", cat_woodwork)
-    store = Store()
-    store.inventory.add_tool(tool_1)
-    store.inventory.add_tool(tool_2)
-    customer = Customer("bob", CustomerType("Casual", 1, 2, 1, 2))
+        tool_5 = Tool("woodwork_tool_5", cat_woodwork) 
+        tool_6 = Tool("woodwork_tool_6", cat_woodwork) 
+        tool_7 = Tool("woodwork_tool_7", cat_woodwork) 
+        tool_8 = Tool("woodwork_tool_8", cat_woodwork) 
     
-    print("Initial {}".format(store))
+        tool_9 = Tool("painting_tool_9", cat_painting)
+        tool_10 = Tool("painting_tool_10", cat_painting)
+        tool_11 = Tool("painting_tool_11", cat_painting)
+        tool_12 = Tool("painting_tool_12", cat_painting)
 
-    # Simulate 35 days
-    for i in range(35):
-        customer.return_tools(store, i)
-        if customer.can_rent_tools(store):
-            customer.rent_tools(store, i)
+        tool_13 = Tool("plumbing_tool_13", cat_plumbing)
+        tool_14 = Tool("plumbing_tool_14", cat_plumbing)
+        tool_15 = Tool("plumbing_tool_15", cat_plumbing)
+        tool_16 = Tool("plumbing_tool_16", cat_plumbing)
 
-    print("Final {}".format(store))
+        tool_17 = Tool("yardwork_tool_17", cat_yardwork)
+        tool_18 = Tool("yardwork_tool_18", cat_yardwork)
+        tool_19 = Tool("yardwork_tool_19", cat_yardwork)
+        tool_20 = Tool("yardwork_tool_20", cat_yardwork)
 
-    print("Completed Rentals: ")
-    for rental in store.complete_rentals:
-        print(rental)
+        self.inventory.add_tool(tool_1)
+        self.inventory.add_tool(tool_2)
+        self.inventory.add_tool(tool_3)
+        self.inventory.add_tool(tool_4)
+        self.inventory.add_tool(tool_5)
+        self.inventory.add_tool(tool_6)
+        self.inventory.add_tool(tool_7)
+        self.inventory.add_tool(tool_8)
+        self.inventory.add_tool(tool_9)
+        self.inventory.add_tool(tool_10)
+        self.inventory.add_tool(tool_11)
+        self.inventory.add_tool(tool_12)
+        self.inventory.add_tool(tool_13)
+        self.inventory.add_tool(tool_14)
+        self.inventory.add_tool(tool_15)
+        self.inventory.add_tool(tool_16)
+        self.inventory.add_tool(tool_17)
+        self.inventory.add_tool(tool_18)
+        self.inventory.add_tool(tool_19)
+        self.inventory.add_tool(tool_20)
 
-    print("Active Rentals: ")
-    for rental in store.active_rentals:
-        print(rental)
+class Simulation:
+
+    def __init__(self):
+        self.days = 0 
+
+    def createCustomer(self):
+        customer1 = CustomerCasual("Casual: customer1")
+        customer2 = CustomerCasual("Casual: customer2")
+        customer3 = CustomerCasual("Casual: customer3")
+        customer4 = CustomerRegular("Regular: customer4")
+        customer5 = CustomerRegular("Regular: customer5")
+        customer6 = CustomerRegular("Regular: customer6")
+        customer7 = CustomerBusiness("Business: customer7")
+        customer8 = CustomerBusiness("Business: ustomer8")
+        customer9 = CustomerBusiness("Business: customer9")
+        customer10 = CustomerBusiness("Business: customer10")  
+
+        customersList = [customer1, customer2, customer3, customer4, customer5, customer6, customer7, customer8, customer9, customer10]
+
+        return customersList
+
+
+    def simulationMain(self): 
+        # Setup the objects
+        store = ToolStore() 
+        customerList = self.createCustomer()
+        
+        #def __init__(self, type_name, tool_rent_min, tool_rent_max, time_rented_min, time_rented_max):
+        #print("Initial {}".format(store))
+
+        # Simulate 35 days
+
+        for current_date in range(35): 
+            for customer in customerList: 
+                customer.update(store, current_date)
+
+        print("Final {}".format(store))
+
+        print("Completed Rentals: ")
+        for rental in store.complete_rentals:
+            print(rental)
+
+        print("Active Rentals: ")
+        for rental in store.active_rentals:
+            print(rental) 
+
+        #return(10)
+
+if __name__ == '__main__':
+    SimulationMain2 = Simulation()
+    SimulationMain2.simulationMain()
