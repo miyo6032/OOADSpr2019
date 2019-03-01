@@ -6,9 +6,6 @@ from random import randint
 import numpy as np 
 from abc import ABC, abstractmethod
 
-customer_max_tools = 3
-store_max_tools = 20
-
 # A tool category is responsible for the tool's price
 class ToolCategory:
     def __init__(self, category_name, price):
@@ -60,7 +57,7 @@ class Inventory:
     def empty(self):
         return len(self.tools) == 0
 
-# Responsible for keeping track of a rental, which contains rental day and cost
+# Responsible for keeping track of a rental, which contains rental period, cost, tools, and customer
 class Rental:
     def __init__(self, tools, start_date, return_date, customer):
         self.tools = tools
@@ -76,7 +73,7 @@ class Rental:
         return self.days_rented() * cost_per_day
 
     def __str__(self):
-        return "Rental Info for {}: {} tools rented from day {} to day {} for ${}".format(self.customer, len(self.tools), self.start_date, self.return_date, self.cost())
+        return "Rental Info: {} rents {} tool(s) rented from day {} to day {} for ${}".format(self.customer, len(self.tools), self.start_date, self.return_date, self.cost())
 
     def __repr__(self):
         return self.__str__()
@@ -90,19 +87,21 @@ class Customer(ABC):
         self.tool_rent_max = 0
         self.time_rented_min = 0
         self.time_rented_max = 0
+        self.max_total_tools = 3
 
     def get_tools_rented(self):
         return sum([len(rental.tools) for rental in self.active_rentals])
 
     # If the customer can rent more tools, and if there are tools left to rent from the store
-    # NOTE: Having a customer have to know about the store may not be the greatest thing
     def can_rent_tools(self, store):
-        return len(store.inventory.tools) >= self.tool_rent_max and self.get_tools_rented() < customer_max_tools
+        return len(store.inventory.tools) >= self.tool_rent_max and self.get_tools_rented() < self.max_total_tools
 
-    # The customer is presented the tools from the store, and chooses some to rent randomly
+    # The customer is presented the tools from the store, and chooses some to rent randomly,
+    # creating a rental and registering with with the store
     def rent_tools(self, store, current_date):
         if not self.can_rent_tools(store):
             print("Warning: could not rent tools to customer " + self.name)
+            return
         amount = randint(self.tool_rent_min, self.tool_rent_max)
         tools_to_rent = np.random.choice(store.inventory.tools, replace=False, size=amount)
         rent_time = randint(self.time_rented_min, self.time_rented_max)
@@ -112,11 +111,17 @@ class Customer(ABC):
 
     # The customer returns each tool, and the store is updated as well
     def return_tools(self, store, current_date):
+        rentals_to_remove = []
         for rental in self.active_rentals:
             if rental.return_date == current_date:
                 store.return_rental(rental)
-                self.active_rentals.remove(rental) 
+                rentals_to_remove.append(rental) 
 
+        for rental in rentals_to_remove:
+            self.active_rentals.remove(rental)
+
+    # The update function is where the time step happens.
+    # Every day, the customer returns tools that are due, and decides whether to rent tools
     def update(self, store, current_date): 
         self.return_tools(store, current_date) 
         randomDay = randint(0, 7)
@@ -130,6 +135,7 @@ class Customer(ABC):
     def __repr__(self):
         return self.__str__()
 
+# These three customer subclasses specify the behavior of each different customer type
 class CustomerCasual(Customer):
     def __init__(self, name):
         super().__init__(name)
@@ -154,9 +160,12 @@ class CustomerRegular(Customer):
         self.time_rented_min = 3
         self.time_rented_max = 5
 
+# The store is an abstract class that implements the factory pattern
+# Its job is to register rentals and recieve rentals from customers, as well as keeping track of tools and money
 class Store(ABC):
     def __init__(self):
-        self.inventory = Inventory(store_max_tools)
+        self.store_max_tools = 20
+        self.inventory = Inventory(self.store_max_tools)
         self.money = 0
         self.complete_rentals = []
         self.active_rentals = []
@@ -183,11 +192,12 @@ class Store(ABC):
     def __str__(self):
         return "Store: \n" \
         + "Inventory: {}\n".format(len(self.inventory.tools)) \
-        + "Income: {}\n".format(self.money)
+        + "Income: ${}\n".format(self.money)
 
     def __repr__(self):
         return self.__str__()
 
+# The concrete Store: it uses the abstract factory method to define which tools it want to have
 class ToolStore(Store):
     def make_tools(self):
         cat_concrete = ToolCategory("Concrete", 40)
@@ -242,54 +252,59 @@ class ToolStore(Store):
         self.inventory.add_tool(tool_19)
         self.inventory.add_tool(tool_20)
 
+# In charge of driving the simulation, which includes
+# "moving" the customers around and holding all of the other objects such as the store
 class Simulation:
 
     def __init__(self):
         self.days = 0 
 
-    def createCustomer(self):
-        customer1 = CustomerCasual("Casual: customer1")
-        customer2 = CustomerCasual("Casual: customer2")
-        customer3 = CustomerCasual("Casual: customer3")
-        customer4 = CustomerRegular("Regular: customer4")
-        customer5 = CustomerRegular("Regular: customer5")
-        customer6 = CustomerRegular("Regular: customer6")
-        customer7 = CustomerBusiness("Business: customer7")
-        customer8 = CustomerBusiness("Business: ustomer8")
-        customer9 = CustomerBusiness("Business: customer9")
-        customer10 = CustomerBusiness("Business: customer10")  
+    def createCustomers(self):
+        customer1 = CustomerCasual("Bob the builder")
+        customer2 = CustomerCasual("customer2")
+        customer3 = CustomerCasual("customer3")
+        customer4 = CustomerRegular("customer4")
+        customer5 = CustomerRegular("customer5")
+        customer6 = CustomerRegular("customer6")
+        customer7 = CustomerBusiness("customer7")
+        customer8 = CustomerBusiness("customer8")
+        customer9 = CustomerBusiness("customer9")
+        customer10 = CustomerBusiness("customer10")  
 
         customersList = [customer1, customer2, customer3, customer4, customer5, customer6, customer7, customer8, customer9, customer10]
 
         return customersList
 
-
-    def simulationMain(self): 
-        # Setup the objects
-        store = ToolStore() 
-        customerList = self.createCustomer()
-        
-        #def __init__(self, type_name, tool_rent_min, tool_rent_max, time_rented_min, time_rented_max):
-        #print("Initial {}".format(store))
-
-        # Simulate 35 days
-
-        for current_date in range(35): 
-            for customer in customerList: 
-                customer.update(store, current_date)
-
+    def print_simulation(self, store):
         print("Final {}".format(store))
+
+        print("Store Tools:")
+        for tool in store.inventory.tools:
+            print(tool)
+
+        print()
 
         print("Completed Rentals: ")
         for rental in store.complete_rentals:
             print(rental)
 
+        print()
+
         print("Active Rentals: ")
         for rental in store.active_rentals:
-            print(rental) 
+            print(rental)
 
-        #return(10)
+    # The entry point for the entire simulation 
+    def simulation_main(self): 
+        store = ToolStore() 
+        customerList = self.createCustomers()
+
+        for current_date in range(1, 36): 
+            for customer in customerList: 
+                customer.update(store, current_date) 
+
+        self.print_simulation(store)
 
 if __name__ == '__main__':
-    SimulationMain2 = Simulation()
-    SimulationMain2.simulationMain()
+    simulation = Simulation()
+    simulation.simulation_main()

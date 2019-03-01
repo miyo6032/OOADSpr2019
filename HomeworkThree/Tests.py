@@ -25,31 +25,10 @@ class TestInventory(unittest.TestCase):
 
 class TestCustomer(unittest.TestCase):
     def setUp(self):
-        self.customer = sm.Customer("bob", sm.CustomerType("Casual", 1, 2, 1, 2))
+        self.customer = sm.CustomerCasual("bob")
 
     def test_customer_can_rent(self):
-        self.assertEqual(self.customer.can_rent_tools(sm.Store()), False)
-
-class TestStore(unittest.TestCase):
-    def setUp(self):
-        self.store = sm.Store()
-        cat_concrete = sm.ToolCategory("Concrete", 40)
-        self.tool_1 = sm.Tool("concrete_tool_1", cat_concrete)
-        self.tool_2 = sm.Tool("concrete_tool_2", cat_concrete)
-        self.store.inventory.add_tool(self.tool_1)
-        self.store.inventory.add_tool(self.tool_2)
-
-    def test_store_rentals(self):
-        rental = sm.Rental([self.tool_1], 0, 0)
-
-        self.store.make_rental(rental)
-        self.assertEqual(self.store.money, rental.cost())
-        self.assertEqual(len(self.store.inventory.tools), 1)
-
-        self.store.return_rental(rental)
-        self.assertEqual(len(self.store.inventory.tools), 2)
-        self.assertEqual(len(self.store.complete_rentals), 1)
-        self.assertEqual(len(self.store.active_rentals), 0)
+        self.assertEqual(self.customer.can_rent_tools(sm.ToolStore()), True)
 
 if __name__ == '__main__':
     unittest.main()
