@@ -1,3 +1,5 @@
+import pymongo as pm
+
 class Task:
     def __init__(self, name, deadline, description, members):
         self.__name = name
@@ -68,13 +70,16 @@ class Database(Subject):
     def add_project(self, project):
         self.__projects.append(project)
 
-    def load():
+    def load(self):
         pass
 
-    def save():
+    def save(self):
         pass 
 
 if __name__ == "__main__":
-    database = Database.get_instance()
-    p = Project("yodo", 4, "bashi", "barribob")
-    t = Task("yodo", 4, "bashi", "barribob")
+    db_server = pm.MongoClient("mongodb://localhost:27017/")
+    the_database = db_server["project_database"]
+    projects = the_database["projects"]
+    project = {"name" : "yodo", "deadline" : 4, "description" : "bashi", "members" : ["Power", "Sasha"]}
+    for project in projects.find():
+        print(project)
