@@ -7,12 +7,12 @@ class Task:
             self.__name = name
             self.__deadline = deadline
             self.__description = description
-            self.__team_members = members
+            self.__members = members
         else:
             self.__name = task["name"]
             self.__deadline = task["deadline"]
             self.__description = task["description"]
-            self.__team_members = task["members"]
+            self.__members = task["members"]
 
     def get_json(self):
         return {"name": self.__name, "deadline": self.__deadline, "description": self.__description, "members": self.__members}
@@ -26,14 +26,14 @@ class Task:
 # Responsible for keeping track of its tasks
 class Project:
     def __init__(self, name = "", deadline = 0, description = "", members = [], project = None):
+        self.__tasks = []
         if project == None:
-            self.__tasks = []
             self.__name = name
             self.__deadline = deadline
             self.__description = description
             self.__members = members
         else:
-            self.__tasks = project["tasks"]
+            self.__tasks = [Task(task = json) for json in project["tasks"]]
             self.__name = project["name"]
             self.__deadline = project["deadline"]
             self.__description = project["description"]
@@ -44,6 +44,9 @@ class Project:
 
     def remove_task(self, task):
         self.__tasks.remove(task)
+
+    def get_name(self):
+        return self.__name
 
     def get_json(self):
         tasks = [task.get_json() for task in self.__tasks]
@@ -91,26 +94,27 @@ class Database(Subject):
         return [Project(project = json) for json in self.__saved_projects.find()]
 
     def delete_project(self, project):
-        self.__saved_projects.delete_one(project.get_json())
+        self.__saved_projects.delete_one( { "name" : project.get_name() })
 
     def add_project(self, project):
+        if self.__saved_projects.count_documents({"name" : project.get_name()}) > 0:
+            raise Exception("Duplicate project name, " + project.get_name())
         self.__saved_projects.insert_one(project.get_json())
 
-    # Update a project by passing in the project and a dictionary key value for which values to update
-    def update_project(self, project, update):
-        self.__saved_projects.update_one(project.get_json(), { "$set": update })
+    # Update a project by passing in the old and new project
+    def update_project(self, project):
+        self.delete_project(project)
+        self.add_project(project)
 
 if __name__ == "__main__":
     d = Database.get_instance();
     p = Project(name = "Yodo", deadline = 4, description = "bashi", members = ["barribob", "power"])
-    d.add_project(p);
-    # d.delete_project(p);
 
     for p in d.get_projects():
         print(p)
 
     for p in d.get_projects():
-        d.update_project(p, {"name": "Yolo"})
+        d.update_project(p)
 
     for p in d.get_projects():
         print(p)
