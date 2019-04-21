@@ -133,7 +133,7 @@ class Page(tk.Frame):
     # "Hides" the frame by destroying it
     def hide(self):
         self.pack_forget()
-        self.destroy()
+        self.destroy() 
 
 class PageAddProject(Page):
     def __init__(self, *args, **kwargs):
@@ -142,52 +142,59 @@ class PageAddProject(Page):
         l = tk.Label(t, text="NEW PROJECT")
         l.pack(side="top", fill="both", expand=True) 
 
-        label = tk.Label(self, text="Project Name")
-        
-        # label_input = tk.Label(self, text="Search")
-        # e = tk.Entry(t)
-        # #e.insert(0, "a default value")
-        # e.pack(side="top", fill="both", padx=100)
-        # # e.grid(row=0, column=1)
-
-        labelText=StringVar()
-        labelText.set("Project Title")
-        labelDir=Label(t, textvariable=labelText, height=4)
+        title=StringVar()
+        title.set("Project Title")
+        labelDir=Label(t, textvariable=title, height=4)
         labelDir.pack(side="top", fill="both", expand=True)
 
-        directory=StringVar(None)
-        dirname=Entry(t,textvariable=directory,width=50)
-        dirname.pack(side="top", fill="both", expand=True) 
+        inputTitle=StringVar(None)
+        self.titleField=Entry(t,textvariable=inputTitle,width=50)
+        self.titleField.pack(side="top", fill="both", expand=True) 
 
         #namebox.insert(END, names + '\n')
         
-        labelText=StringVar()
-        labelText.set("Project Description")
-        labelDir=Label(t, textvariable=labelText, height=4)
+        description=StringVar()
+        description.set("Project Description")
+        labelDir=Label(t, textvariable=description, height=4)
         labelDir.pack(side="top", fill="both", expand=True)
 
-        directory=StringVar(None)
-        dirname=Entry(t,textvariable=directory,width=50)
-        dirname.pack(side="top", fill="both", expand=True)
+        inputDescription=StringVar(None)
+        self.descriptionField=Entry(t,textvariable=inputDescription,width=50)
+        self.descriptionField.pack(side="top", fill="both", expand=True)
 
-        labelText=StringVar()
-        labelText.set("Project Deadline")
-        labelDir=Label(t, textvariable=labelText, height=4)
+        deadline=StringVar()
+        deadline.set("Project Deadline")
+        labelDir=Label(t, textvariable=deadline, height=4)
         labelDir.pack(side="top", fill="both", expand=True)
 
-        directory=StringVar(None)
-        dirname=Entry(t,textvariable=directory,width=50)
-        dirname.pack(side="top", fill="both", expand=True)
+        deadlineInput=StringVar(None)
+        self.deadlineField=Entry(t,textvariable=deadlineInput,width=50)
+        self.deadlineField.pack(side="top", fill="both", expand=True)
 
-        labelText=StringVar()
-        labelText.set("Project Team Members")
-        labelDir=Label(t, textvariable=labelText, height=4)
+        team=StringVar()
+        team.set("Project Team Members")
+        labelDir=Label(t, textvariable=team, height=4)
         labelDir.pack(side="top", fill="both", expand=True)
 
-        directory=StringVar(None)
-        dirname=Entry(t,textvariable=directory,width=50)
-        dirname.pack(side="top", fill="both", expand=True) 
-    
+        teamInput=StringVar(None)
+        self.teamField=Entry(t,textvariable=teamInput,width=50)
+        self.teamField.pack(side="top", fill="both", expand=True)  
+
+        saveButton = tk.Button(text="Save Project", command=self.saveProject) 
+        saveButton.pack(side="bottom")
+
+    # Saves project to the database, and returns back to the main page
+    def saveProject(self): 
+        title = self.titleField.get()  
+        description = self.descriptionField.get() 
+        deadline = self.deadlineField.get() 
+        team = self.teamField.get() 
+
+        newProject = Project(title, description, deadline, team) 
+        Database.get_instance().add_project(newProject) 
+
+        self.ui_facade.show_main_page()
+
 class PageMain(Page):
     def __init__(self, *args, **kwargs):
         Page.__init__(self, *args, **kwargs)
@@ -243,7 +250,12 @@ class UIFacade(tk.Frame):
 
     # Place the page into the ui_facade container
     def show_page(self, page):
-        page.place(in_=self.container, x=0, y=0, relwidth=1, relheight=1)
+        page.place(in_=self.container, x=0, y=0, relwidth=1, relheight=1)  
+    
+    def show_main_page(self): 
+        self.add_project_page.hide  
+        self.main_page = PageMain(self) 
+        self.show_page(self.main_page) 
 
 if __name__ == "__main__":
     root = tk.Tk()
