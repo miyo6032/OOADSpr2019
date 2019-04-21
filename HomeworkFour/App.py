@@ -1,5 +1,6 @@
 import pymongo as pm
-import unittest
+import tkinter as tk
+from tkinter import StringVar, Label, Entry
 
 # Responsible for holding task data
 class Task:
@@ -120,34 +121,123 @@ class Database(Subject):
         self.delete_project(project)
         self.add_project(project)
 
-# Test Cases that make sure the database can store the projects as the
-# app updates, adds and removes projects
+#
+# Begin UI and Front End Elements
+#
 
-class TestAddProject(unittest.TestCase):
-    def setUp(self):
-        self.database = Database.get_instance();
-        self.project = Project(name = "Project 4", deadline = 4, description = "bashi", members = ["barribob", "power"])
+class Page(tk.Frame):
+    def __init__(self, *args, **kwargs):
+        tk.Frame.__init__(self, *args, **kwargs)
 
-    def test_add_project(self):
-        num_projects = len(self.database.get_projects())
-        self.database.add_project(self.project)
-        self.assertEqual(len(self.database.get_projects()), num_projects + 1)
-        self.database.delete_project(self.project)
-        self.assertEqual(len(self.database.get_projects()), num_projects)
+    def show(self):
+        self.lift()
 
-class TestUpdateProject(unittest.TestCase):
-    def setUp(self):
-        self.database = Database.get_instance();
-        self.project = Project(name = "Project 4", deadline = 4, description = "bashi", members = ["barribob", "power"])
-        self.task = Task(name = "Task1", deadline = 4, description = "desc", members = [])
+    def hide(self):
+        pass
 
-    def test_update(self):
-        self.database.add_project(self.project)
-        self.project.add_task(self.task)
-        self.database.update_project(self.project)
-        tasks = len(self.database.get_project_by_name(self.project.get_name()).get_tasks())
-        self.assertEqual(tasks, 1)
-        self.database.delete_project(self.project)
+class PageAddProject(Page):
+    def __init__(self, *args, **kwargs):
+        Page.__init__(self, *args, **kwargs)
+        t = tk.Toplevel(self)
+        t.wm_title("New Project")
+        l = tk.Label(t, text="NEW PROJECT")
+        l.pack(side="top", fill="both", expand=True) 
+
+
+        label = tk.Label(self, text="Project Name")
+        
+        # label_input = tk.Label(self, text="Search")
+        # e = tk.Entry(t)
+        # #e.insert(0, "a default value")
+        # e.pack(side="top", fill="both", padx=100)
+        # # e.grid(row=0, column=1)
+
+        labelText=StringVar()
+        labelText.set("Project Title")
+        labelDir=Label(t, textvariable=labelText, height=4)
+        labelDir.pack(side="top", fill="both", expand=True)
+
+        directory=StringVar(None)
+        dirname=Entry(t,textvariable=directory,width=50)
+        dirname.pack(side="top", fill="both", expand=True) 
+
+        #namebox.insert(END, names + '\n')
+        
+        labelText=StringVar()
+        labelText.set("Project Description")
+        labelDir=Label(t, textvariable=labelText, height=4)
+        labelDir.pack(side="top", fill="both", expand=True)
+
+        directory=StringVar(None)
+        dirname=Entry(t,textvariable=directory,width=50)
+        dirname.pack(side="top", fill="both", expand=True)
+
+        labelText=StringVar()
+        labelText.set("Project Deadline")
+        labelDir=Label(t, textvariable=labelText, height=4)
+        labelDir.pack(side="top", fill="both", expand=True)
+
+        directory=StringVar(None)
+        dirname=Entry(t,textvariable=directory,width=50)
+        dirname.pack(side="top", fill="both", expand=True)
+
+        labelText=StringVar()
+        labelText.set("Project Team Members")
+        labelDir=Label(t, textvariable=labelText, height=4)
+        labelDir.pack(side="top", fill="both", expand=True)
+
+        directory=StringVar(None)
+        dirname=Entry(t,textvariable=directory,width=50)
+        dirname.pack(side="top", fill="both", expand=True) 
+    
+class PageMain(Page):
+    def __init__(self, *args, **kwargs):
+        Page.__init__(self, *args, **kwargs)
+
+        self.update()
+
+    def update(self):
+        database = Database.get_instance();
+
+        if(hasattr(self, '__buttonframe')):
+            self.__buttonframe.destroy();
+
+        self.__buttonframe = tk.Frame(self)
+        self.__buttonframe.pack(side="top", fill="both", expand=False)
+
+        # Generates all of the buttons for each project from the database
+        for project in database.get_projects():
+            self.create_project(project.get_name())
+
+        b4 = tk.Button(self.__buttonframe, text="Add Project")
+        b4.pack(side="bottom")
+
+    # Creates a new project button
+    def create_project(self, project_name):
+        new_project = tk.Button(self.__buttonframe, text=project_name) 
+        new_project.pack(side="top", fill="both", expand=True)
+
+class UIFacade(tk.Frame):
+    def __init__(self, *args, **kwargs):
+        tk.Frame.__init__(self, *args, **kwargs)
+        p1 = PageMain(self)
+
+        buttonframe = tk.Frame(self)
+        container = tk.Frame(self)
+        buttonframe.pack(side="top", fill="x", expand=False)
+        container.pack(side="top", fill="both", expand=True)
+
+        p1.place(in_=container, x=0, y=0, relwidth=1, relheight=1)
+
+        b1 = tk.Button(buttonframe, text="Projects", command=p1.lift)
+
+        b1.pack(side="left")
+        
+        p1.show()
 
 if __name__ == "__main__":
-    unittest.main()
+    root = tk.Tk()
+    main = UIFacade(root)
+    main.pack(side="top", fill="both", expand=True)
+    root.wm_geometry("400x400")
+    root.mainloop()
