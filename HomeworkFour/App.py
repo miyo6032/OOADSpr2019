@@ -126,23 +126,21 @@ class Database(Subject):
 #
 
 class Page(tk.Frame):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, ui_facade, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
+        self.ui_facade = ui_facade
 
-    def show(self):
-        self.lift()
-
+    # "Hides" the frame by destroying it
     def hide(self):
-        pass
+        self.pack_forget()
+        self.destroy()
 
 class PageAddProject(Page):
     def __init__(self, *args, **kwargs):
         Page.__init__(self, *args, **kwargs)
-        t = tk.Toplevel(self)
-        t.wm_title("New Project")
+        t = self
         l = tk.Label(t, text="NEW PROJECT")
         l.pack(side="top", fill="both", expand=True) 
-
 
         label = tk.Label(self, text="Project Name")
         
@@ -196,6 +194,8 @@ class PageMain(Page):
 
         self.update()
 
+    # Where all of the page element generation happens
+    # Basically loads the page
     def update(self):
         database = Database.get_instance();
 
@@ -209,8 +209,12 @@ class PageMain(Page):
         for project in database.get_projects():
             self.create_project(project.get_name())
 
-        b4 = tk.Button(self.__buttonframe, text="Add Project")
-        b4.pack(side="bottom")
+        # This button links to the show add project page
+        add_project_button = tk.Button(self.__buttonframe, text="Add Project", command=self.ui_facade.show_add_project)
+        add_project_button.pack(side="bottom")
+
+        projects = tk.Button(self, text="Projects")
+        projects.pack(side="left")
 
     # Creates a new project button
     def create_project(self, project_name):
@@ -220,20 +224,26 @@ class PageMain(Page):
 class UIFacade(tk.Frame):
     def __init__(self, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
-        p1 = PageMain(self)
+        self.add_project_page = None
+        self.main_page = PageMain(self)
 
-        buttonframe = tk.Frame(self)
-        container = tk.Frame(self)
-        buttonframe.pack(side="top", fill="x", expand=False)
-        container.pack(side="top", fill="both", expand=True)
+        self.container = tk.Frame(self)
+        self.container.pack(side="top", fill="both", expand=True)
 
-        p1.place(in_=container, x=0, y=0, relwidth=1, relheight=1)
-
-        b1 = tk.Button(buttonframe, text="Projects", command=p1.lift)
-
-        b1.pack(side="left")
+        # Place the main page
+        self.show_page(self.main_page)
         
-        p1.show()
+    # Hides the main page before opening the page to add projects
+    def show_add_project(self):
+        self.main_page.hide()
+
+        # To make the page show, instantiate the page first
+        self.add_project_page = PageAddProject(self)
+        self.show_page(self.add_project_page)
+
+    # Place the page into the ui_facade container
+    def show_page(self, page):
+        page.place(in_=self.container, x=0, y=0, relwidth=1, relheight=1)
 
 if __name__ == "__main__":
     root = tk.Tk()
