@@ -1,5 +1,5 @@
-import Tkinter as tk
-from Tkinter import StringVar, Label, Entry
+import tkinter as tk
+from tkinter import StringVar, Label, Entry
 
 class Page(tk.Frame):
     def __init__(self, *args, **kwargs):
@@ -8,13 +8,13 @@ class Page(tk.Frame):
         self.lift()
 
 class AddProject:
-	def __init__(self, *args, **kwargs):
-		Page.__init__(self, *args, **kwargs)
-		label = tk.Label(self, text="ADD PROJECT DETAILS")
-		label.pack(side="top", fill="both", expand=True)
+    def __init__(self, *args, **kwargs):
+        Page.__init__(self, *args, **kwargs)
+        label = tk.Label(self, text="ADD PROJECT DETAILS")
+        label.pack(side="top", fill="both", expand=True)
 
 class Page1(Page):
-   def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
        Page.__init__(self, *args, **kwargs)
        #label = tk.Label(self, text="All Projects")
        #label.pack(side="top", fill="both", expand=True) 
@@ -43,62 +43,62 @@ class Page1(Page):
        b4 = tk.Button(buttonframe, text="Add Project", command=self.create_window)
        b4.pack(side="bottom") 
 
-   def create_window(self):
-   	t = tk.Toplevel(self)
-   	t.wm_title("New Project")
-   	l = tk.Label(t, text="NEW PROJECT")
-   	l.pack(side="top", fill="both", expand=True) 
+    def create_window(self):
+        t = tk.Toplevel(self)
+        t.wm_title("New Project")
+        l = tk.Label(t, text="NEW PROJECT")
+        l.pack(side="top", fill="both", expand=True) 
 
 
-   	label = tk.Label(self, text="Project Name")
-   	
-   	# label_input = tk.Label(self, text="Search")
-   	# e = tk.Entry(t)
-   	# #e.insert(0, "a default value")
-   	# e.pack(side="top", fill="both", padx=100)
-   	# # e.grid(row=0, column=1)
+        label = tk.Label(self, text="Project Name")
+        
+        # label_input = tk.Label(self, text="Search")
+        # e = tk.Entry(t)
+        # #e.insert(0, "a default value")
+        # e.pack(side="top", fill="both", padx=100)
+        # # e.grid(row=0, column=1)
 
-   	labelText=StringVar()
-	labelText.set("Project Title")
-	labelDir=Label(t, textvariable=labelText, height=4)
-	labelDir.pack(side="top", fill="both", expand=True)
+        labelText=StringVar()
+        labelText.set("Project Title")
+        labelDir=Label(t, textvariable=labelText, height=4)
+        labelDir.pack(side="top", fill="both", expand=True)
 
-	directory=StringVar(None)
-	dirname=Entry(t,textvariable=directory,width=50)
-	dirname.pack(side="top", fill="both", expand=True) 
+        directory=StringVar(None)
+        dirname=Entry(t,textvariable=directory,width=50)
+        dirname.pack(side="top", fill="both", expand=True) 
 
-	#namebox.insert(END, names + '\n')
-	
-	labelText=StringVar()
-	labelText.set("Project Description")
-	labelDir=Label(t, textvariable=labelText, height=4)
-	labelDir.pack(side="top", fill="both", expand=True)
+        #namebox.insert(END, names + '\n')
+        
+        labelText=StringVar()
+        labelText.set("Project Description")
+        labelDir=Label(t, textvariable=labelText, height=4)
+        labelDir.pack(side="top", fill="both", expand=True)
 
-	directory=StringVar(None)
-	dirname=Entry(t,textvariable=directory,width=50)
-	dirname.pack(side="top", fill="both", expand=True)
+        directory=StringVar(None)
+        dirname=Entry(t,textvariable=directory,width=50)
+        dirname.pack(side="top", fill="both", expand=True)
 
-	labelText=StringVar()
-	labelText.set("Project Deadline")
-	labelDir=Label(t, textvariable=labelText, height=4)
-	labelDir.pack(side="top", fill="both", expand=True)
+        labelText=StringVar()
+        labelText.set("Project Deadline")
+        labelDir=Label(t, textvariable=labelText, height=4)
+        labelDir.pack(side="top", fill="both", expand=True)
 
-	directory=StringVar(None)
-	dirname=Entry(t,textvariable=directory,width=50)
-	dirname.pack(side="top", fill="both", expand=True)
+        directory=StringVar(None)
+        dirname=Entry(t,textvariable=directory,width=50)
+        dirname.pack(side="top", fill="both", expand=True)
 
-	labelText=StringVar()
-	labelText.set("Project Team Members")
-	labelDir=Label(t, textvariable=labelText, height=4)
-	labelDir.pack(side="top", fill="both", expand=True)
+        labelText=StringVar()
+        labelText.set("Project Team Members")
+        labelDir=Label(t, textvariable=labelText, height=4)
+        labelDir.pack(side="top", fill="both", expand=True)
 
-	directory=StringVar(None)
-	dirname=Entry(t,textvariable=directory,width=50)
-	dirname.pack(side="top", fill="both", expand=True) 
+        directory=StringVar(None)
+        dirname=Entry(t,textvariable=directory,width=50)
+        dirname.pack(side="top", fill="both", expand=True) 
 
-	#buttonframe = tk.Frame(self)
-	#save = tk.Button(buttonframe, text="Save Project")
-	#save.pack(side="left")
+        #buttonframe = tk.Frame(self)
+        #save = tk.Button(buttonframe, text="Save Project")
+        #save.pack(side="left")
 
 class Page2(Page):
    def __init__(self, *args, **kwargs):
