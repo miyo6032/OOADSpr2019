@@ -107,8 +107,8 @@ class Database(Subject):
         return None
 
     # Finds the project by name to delete
-    def delete_project(self, project):
-        self.__saved_projects.delete_one( { "name" : project.get_name() })
+    def delete_project(self, project_name):
+        self.__saved_projects.delete_one( { "name" : project_name })
 
     # When adding the project, enforces a unique name
     def add_project(self, project):
@@ -178,7 +178,9 @@ class PageAddProject(Page):
 
         teamInput=StringVar(None)
         self.teamField=Entry(t,textvariable=teamInput,width=50)
-        self.teamField.pack(side="top", fill="both", expand=True)  
+        self.teamField.pack(side="top", fill="both", expand=True)
+
+        buttonsFrame = tk.Frame()
 
         saveButton = tk.Button(text="Save Project", command=self.saveProject) 
         saveButton.pack(side="bottom")
@@ -204,7 +206,11 @@ class PageMain(Page):
     # Where all of the page element generation happens
     # Basically loads the page
     def update(self):
-        database = Database.get_instance();
+        database = Database.get_instance()
+
+        # Generate title
+        title_font_size = 20
+        main_page_title = tk.Label(self, text = "Projects", anchor='w', font=("Arial", title_font_size)).pack(fill='both')
 
         if(hasattr(self, '__buttonframe')):
             self.__buttonframe.destroy();
@@ -216,23 +222,55 @@ class PageMain(Page):
         for project in database.get_projects():
             self.create_project(project.get_name())
 
-        # This button links to the show add project page
-        add_project_button = tk.Button(self.__buttonframe, text="Add Project", command=self.ui_facade.show_add_project)
-        add_project_button.pack(side="bottom")
+        # Add Project button
+        add_project_frame = tk.Frame(self)
+        add_project_frame.pack(side="bottom", fill="both")
+        add_project_button = tk.Button(add_project_frame, text="Add Project", command=self.ui_facade.show_add_project)
+        add_project_button.pack(side="left")
 
-        projects = tk.Button(self, text="Projects")
-        projects.pack(side="left")
-
-    # Creates a new project button
+    # Creates a new project entry with the view and delete buttons
     def create_project(self, project_name):
-        new_project = tk.Button(self.__buttonframe, text=project_name) 
-        new_project.pack(side="top", fill="both", expand=True)
+        project_frame = tk.Frame(self.__buttonframe, borderwidth = 1, background="gray")
+        project_frame.pack(side="top", fill="both", expand=True)
+        
+        project_title = tk.Label(project_frame, text=project_name, anchor='w')
+        project_title.pack(side="left", fill="both", expand=True)
+
+        delete_project_button = tk.Button(project_frame, text="Delete", command=lambda : self.show_confirm_delete(project_name))
+        delete_project_button.pack(side="right", fill="both")
+
+        view_project_button = tk.Button(project_frame, text="View")
+        view_project_button.pack(side="right", fill="both")
+
+    # Shows a dialogue for confirming the deletion of a project
+    def show_confirm_delete(self, project_name):
+        confirm_delete_window = tk.Toplevel()
+        confirm_delete_window.wm_title("Delete Project?")
+
+        confirm_delete_text = tk.Label(confirm_delete_window, text="Delete Project " + project_name + "?")
+        confirm_delete_text.pack(side="top")
+
+        options_frame = tk.Frame(confirm_delete_window)
+        options_frame.pack(side="bottom")
+
+        yes_button = tk.Button(options_frame, text="Yes, Delete", command=lambda : self.delete_project(project_name, confirm_delete_window.destroy))
+        yes_button.pack(side="left")
+
+        no_button = tk.Button(options_frame, text="Cancel", command=confirm_delete_window.destroy)
+        no_button.pack(side="right")
+
+    # Delete the project from the database, updates the window, and closes the delete confirm window
+    def delete_project(self, project_name, delete_function):
+        Database.get_instance().delete_project(project_name)
+        self.ui_facade.show_main_page()
+        delete_function()
 
 class UIFacade(tk.Frame):
     def __init__(self, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
         self.add_project_page = None
         self.main_page = PageMain(self)
+        self.pages = [self.add_project_page, self.main_page]
 
         self.container = tk.Frame(self)
         self.container.pack(side="top", fill="both", expand=True)
@@ -240,9 +278,9 @@ class UIFacade(tk.Frame):
         # Place the main page
         self.show_page(self.main_page)
         
-    # Hides the main page before opening the page to add projects
+    # Hides all pages before opening the page to add projects
     def show_add_project(self):
-        self.main_page.hide()
+        self.close_all_pages()
 
         # To make the page show, instantiate the page first
         self.add_project_page = PageAddProject(self)
@@ -252,8 +290,13 @@ class UIFacade(tk.Frame):
     def show_page(self, page):
         page.place(in_=self.container, x=0, y=0, relwidth=1, relheight=1)  
     
+    def close_all_pages(self):
+        for page in self.pages:
+            if(page != None):
+                page.hide()
+
     def show_main_page(self): 
-        self.add_project_page.hide  
+        self.close_all_pages()
         self.main_page = PageMain(self) 
         self.show_page(self.main_page) 
 
