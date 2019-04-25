@@ -52,7 +52,16 @@ class Project:
         return self.__tasks
 
     def get_name(self):
-        return self.__name
+        return self.__name 
+
+    def get_deadline(self): 
+        return self.__deadline 
+    
+    def get_members(self): 
+        return self.__members 
+
+    def get_projectDetails(self): 
+        return self.__description
 
     # Used to easily save into the mongodb database
     def get_json(self):
@@ -134,12 +143,27 @@ class Page(tk.Frame, ABC):
         self.ui_facade = ui_facade
         # Some constants to maintain consistency between pages
         self.title_font_size = 20
-        
+
         self.generate_page()
 
     @abstractmethod
     def generate_page(self):
         pass
+
+    def generate_label(self, parent, text):
+        label = tk.Label(parent, text=text, anchor='w')
+        label.pack(side="top", fill="both")
+        return label
+
+    def generate_title(self, parent, text):
+        title = tk.Label(parent, text = text, anchor='w', font=("Arial", self.title_font_size))
+        title.pack(fill='both')
+        return title
+
+    def generate_entry(self, parent):
+        entry = tk.Entry(self,textvariable = StringVar(None))
+        entry.pack(side="top", fill="x", expand=True)
+        return entry
 
     # "Hides" the frame by destroying it
     def hide(self):
@@ -151,46 +175,23 @@ class PageAddProject(Page):
         Page.__init__(self, *args, **kwargs)
 
     def generate_page(self):
-        new_project_label = tk.Label(self, text="NEW PROJECT", anchor='w', font=("Arial", self.title_font_size))
-        new_project_label.pack(side="top", fill="both", expand=True) 
+        self.generate_title(self, "New Project")
 
-        labelDir=Label(self, text="Project Title", height=4, anchor='w')
-        labelDir.pack(side="top", fill="x", expand=True)
-
-        inputTitle=StringVar(None)
-        self.titleField=Entry(self,textvariable=inputTitle,width=50)
-        self.titleField.pack(side="top", fill="both", expand=True) 
-
-        projectDescription=Label(self, text="Project Description", height=4, anchor='w')
-        projectDescription.pack(side="top", fill="both", expand=True)
-
-        inputDescription=StringVar(None)
-        self.descriptionField=Entry(self,textvariable=inputDescription,width=50)
-        self.descriptionField.pack(side="top", fill="both", expand=True)
-
-        projectDeadline=Label(self, text="Project Deadline", height=4, anchor='w')
-        projectDeadline.pack(side="top", fill="both", expand=True)
-
-        deadlineInput=StringVar(None)
-        self.deadlineField=Entry(self,textvariable=deadlineInput,width=50)
-        self.deadlineField.pack(side="top", fill="both", expand=True)
-
-        teamMembers=Label(self, text="Project Team Members", height=4, anchor='w')
-        teamMembers.pack(side="top", fill="both", expand=True)
-
-        teamInput=StringVar(None)
-        self.teamField=Entry(self,textvariable=teamInput,width=50)
-        self.teamField.pack(side="top", fill="both", expand=True)
+        self.generate_label(self, "Project Title")
+        self.titleField = self.generate_entry(self)
+        self.generate_label(self, "Project Description")
+        self.descriptionField = self.generate_entry(self)
+        self.generate_label(self, "Project Deadline")
+        self.deadlineField= self.generate_entry(self)
+        self.generate_label(self, "Project Team Members")
+        self.teamField = self.generate_entry(self)
 
         # For the buttons 
         buttonsFrame = tk.Frame(self)
         buttonsFrame.pack(side="bottom", fill="x")
 
-        saveButton = tk.Button(buttonsFrame, text="Save Project", command=self.saveProject) 
-        saveButton.pack(side="left")
-
-        cancel = tk.Button(buttonsFrame, text="Cancel", command=self.ui_facade.show_main_page) 
-        cancel.pack(side="right")
+        tk.Button(buttonsFrame, text="Save Project", command=self.saveProject) .pack(side="left")
+        tk.Button(buttonsFrame, text="Cancel", command=self.ui_facade.show_main_page).pack(side="right")
 
     # Saves project to the database, and returns back to the main page
     def saveProject(self): 
@@ -214,7 +215,7 @@ class PageMain(Page):
         database = Database.get_instance()
 
         # Generate title
-        main_page_title = tk.Label(self, text = "Projects", anchor='w', font=("Arial", self.title_font_size)).pack(fill='both')
+        self.generate_title(self, "Project")
 
         if(hasattr(self, '__buttonframe')):
             self.__buttonframe.destroy();
@@ -242,8 +243,9 @@ class PageMain(Page):
 
         delete_project_button = tk.Button(project_frame, text="Delete", command=lambda : self.show_confirm_delete(project_name))
         delete_project_button.pack(side="right", fill="both")
-
-        view_project_button = tk.Button(project_frame, text="View")
+         
+        project = Database.get_instance().get_project_by_name(project_name)
+        view_project_button = tk.Button(project_frame, text="View", command=lambda : self.ui_facade.showProjectDetails(project))
         view_project_button.pack(side="right", fill="both")
 
     # Shows a dialogue for confirming the deletion of a project
@@ -273,26 +275,67 @@ class PageMain(Page):
         popup_window.grab_release()
         popup_window.destroy()
 
+class ProjectDescription(Page): 
+    def __init__(self, ui_facade, project, *args, **kwargs):
+        self.project = project
+        Page.__init__(self, ui_facade, *args, **kwargs)
+        #Database.get_instance
+
+    def generate_page(self):
+        #t = tk.Toplevel(self)
+        #t.wm_title("Project Details")
+
+        nameFrame = tk.LabelFrame(self, pady = 0)  
+        nameFrame.pack(side="top", fill="both")
+
+        detailsFrame = tk.LabelFrame(self, pady = 0) 
+        detailsFrame.pack(side="left", fill="both")
+
+        tasksFrame = tk.LabelFrame(self, pady=0) 
+        tasksFrame.pack(side="left", fill="both") 
+
+        miniFrame = tk.LabelFrame(tasksFrame, pady=0) 
+        miniFrame.pack(side="bottom", fill="both")
+
+        l = tk.Label(detailsFrame, text=self.project.get_projectDetails(), bg="white", fg="black", borderwidth=5, relief="groove")
+        l.pack(side="top", fill="both", expand=True)
+        label = tk.Label(self, text=self.project.get_name())
+
+        projectTitle=StringVar()
+        projectTitle.set(self.project.get_name())
+        labelDir=Label(nameFrame, textvariable=projectTitle, height=4, bg="white", fg="black", borderwidth=5, relief="groove")
+        labelDir.pack(side="top", fill="both", expand=True)
+
+        projDeadline=StringVar()
+        projDeadline.set(self.project.get_deadline())
+        labelDir=Label(detailsFrame, textvariable=projDeadline, height=4, bg="white", fg="black", borderwidth=5, relief="groove")
+        labelDir.pack(side="top", fill="both", expand=True)
+
+        projDeadline=StringVar()
+        projDeadline.set(self.project.get_members())
+        labelDir=Label(detailsFrame, textvariable=projDeadline, height=4, bg="white", fg="black", borderwidth=5, relief="groove")
+        labelDir.pack(side="top", fill="both", expand=True)
+
+        addTasks = tk.Button(miniFrame, text="Main Menu", command=self.ui_facade.show_main_page)
+        addTasks.pack(side="left", fill="both")
+
+        addTasks = tk.Button(miniFrame, text="Add Tasks")
+        addTasks.pack(side="right", fill="both")
+        
+
 class UIFacade(tk.Frame):
     def __init__(self, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
         self.add_project_page = None
         self.main_page = PageMain(self)
-        self.pages = [self.add_project_page, self.main_page]
+        self.projectDetails = None 
+        self.pages = [self.add_project_page, self.main_page, self.projectDetails]
 
         self.container = tk.Frame(self)
         self.container.pack(side="top", fill="both", expand=True)
 
         # Place the main page
         self.show_page(self.main_page)
-        
-    # Hides all pages before opening the page to add projects
-    def show_add_project(self):
-        self.close_all_pages()
-
-        # To make the page show, instantiate the page first
-        self.add_project_page = PageAddProject(self)
-        self.show_page(self.add_project_page)
 
     # Place the page into the ui_facade container
     def show_page(self, page):
@@ -307,6 +350,19 @@ class UIFacade(tk.Frame):
         self.close_all_pages()
         self.main_page = PageMain(self) 
         self.show_page(self.main_page) 
+
+    # Hides all pages before opening the page to add projects
+    def show_add_project(self):
+        self.close_all_pages()
+
+        # To make the page show, instantiate the page first
+        self.add_project_page = PageAddProject(self)
+        self.show_page(self.add_project_page) 
+
+    def showProjectDetails(self, project): 
+        self.close_all_pages() 
+        self.projectDetails = ProjectDescription(self, project) 
+        self.show_page(self.projectDetails)
 
 if __name__ == "__main__":
     root = tk.Tk()
