@@ -1,3 +1,9 @@
+#
+# Homework 6 Final Project 
+# Michael Yoshimura
+# Gayathri Gude
+#
+
 import pymongo as pm
 import tkinter as tk
 from tkinter import StringVar, Label, Entry
@@ -29,6 +35,7 @@ class Task:
     def get_members(self):
         return self.__members
 
+    # Transforms the task into json to put into the database
     def get_json(self):
         return {"name": self.__name, "deadline": self.__deadline, "description": self.__description, "members": self.__members}
 
@@ -87,23 +94,11 @@ class Project:
     def __repr__(self):
         return self.__str__()
 
-class Subject:
-    def __init__(self):
-        self.__observers = []
-
-    def add_observer(self, observer):
-        self.__observers.append(observer)
-
-    def notify_observers(self):
-        for observer in self.__observers:
-            observer.update()
-
 # Responsible for managing all of the project through the database
-class Database(Subject):
+class Database():
     __instance = None
 
     def __init__(self):
-        Subject.__init__(self)
         if Database.__instance != None: # Prevents more than one instance of the singleton from occurring
             raise Exception("Attempt to more than one Database singleton instance.")
         
@@ -243,9 +238,6 @@ class PageMain(Page):
         # Generate title
         self.generate_title(self, "Project")
 
-        if(hasattr(self, '__buttonframe')):
-            self.__buttonframe.destroy();
-
         self.__buttonframe = self.generate_frame(self)
         self.__buttonframe.pack(side="top", fill="both", expand=False)
 
@@ -284,7 +276,7 @@ class PageMain(Page):
         self.generate_button(options_frame, "Yes, Delete", lambda : self.delete_project(project_name, confirm_delete_window)).pack(side="left")
         self.generate_button(options_frame, "Cancel", confirm_delete_window.destroy).pack(side="right")
         
-        # This window is the only interactable window
+        # Makes this window the only interactable window
         confirm_delete_window.grab_set()
 
     # Delete the project from the database, updates the window, and closes the delete confirm window
@@ -324,14 +316,15 @@ class ProjectDescription(Page):
         miniFrame = self.generate_frame(self.tasksFrame)
         miniFrame.pack(side="bottom", fill="both")
 
-        self.generate_button(miniFrame, "Main Menu", self.ui_facade.show_main_page).pack(side="left", fill="both")
-        self.generate_button(miniFrame, "Add Tasks", lambda : self.ui_facade.showAddTask(self.project)).pack(side="right", fill="both")
+        self.generate_button(miniFrame, "Main Menu", self.ui_facade.show_main_page).pack(side="right", fill="both")
+        self.generate_button(miniFrame, "Add Tasks", lambda : self.ui_facade.showAddTask(self.project)).pack(side="left", fill="both")
 
+    # Represents one task in the list of tasks for the page
     def generate_task(self, task):
         task_frame = self.generate_frame(self.tasksFrame)
         task_frame.pack(side="top", fill="x")
 
-        self.generate_label(task_frame, task.get_json()["name"]).pack(side="left", fill="x", expand=True)
+        self.generate_label(task_frame, task.get_name()).pack(side="left", fill="x", expand=True)
 
         self.generate_button(task_frame, "Delete", lambda : self.show_confirm_delete(task)).pack(side="right")
         self.generate_button(task_frame, "View", lambda : self.ui_facade.showTask(self.project, task)).pack(side="right")
@@ -353,7 +346,7 @@ class ProjectDescription(Page):
         confirm_delete_window = tk.Toplevel()
         confirm_delete_window.wm_title("Delete Task?")
 
-        self.generate_label(confirm_delete_window, "Delete Task " + task.get_json()["name"] + "?").pack(side="top")
+        self.generate_label(confirm_delete_window, "Delete Task " + task.get_name() + "?").pack(side="top")
 
         options_frame = self.generate_frame(confirm_delete_window)
         options_frame.pack(side="bottom", fill="both")
@@ -384,6 +377,7 @@ class PageAddTask(Page):
     def generate_page(self):
         self.generate_title(self, "New Task")
 
+        # Labels and input fields for a new task
         self.generate_label(self, "Task Title")
         self.titleField = self.generate_entry(self)
         self.generate_label(self, "Task Description")
@@ -436,51 +430,54 @@ class ViewTask(Page):
 #
 # Responsible for mediating page changes
 #
+# Basically works by destroying the page that is not needed
+# and instantiating the new page. This method is not super
+# efficient, but for our purposes, it simplifies a lot of operations
+# and makes it so that we do not need to mediate messages using the
+# observer pattern
+#
 class UIFacade(tk.Frame):
     def __init__(self, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
         self.current_page = PageMain(self)
 
+        # This is the frame that contains each page required
         self.container = tk.Frame(self)
         self.container.pack(side="top", fill="both", expand=True)
 
-        # Place the main page
-        self.show_page(self.current_page)
+        self.show_page(PageMain(self))
 
     # Place the page into the ui_facade container
     def show_page(self, page):
+        self.current_page.hide()
         page.place(in_=self.container, x=0, y=0, relwidth=1, relheight=1)  
 
+    #
+    # The functions below are responsible for changing the app to the correct page requested
+    #
     def show_main_page(self): 
-        self.current_page.hide()
-        self.current_page = PageMain(self) 
-        self.show_page(self.current_page) 
+        self.show_page(PageMain(self)) 
 
-    # Hides all pages before opening the page to add projects
     def show_add_project(self):
-        self.current_page.hide()
-        # To make the page show, instantiate the page first
-        self.current_page = PageAddProject(self)
-        self.show_page(self.current_page) 
+        self.show_page(PageAddProject(self)) 
 
     def showProjectDetails(self, project): 
-        self.current_page.hide()
-        self.current_page = ProjectDescription(self, project) 
-        self.show_page(self.current_page)
+        self.show_page(ProjectDescription(self, project))
 
     def showAddTask(self, project): 
-        self.current_page.hide()
-        self.current_page = PageAddTask(self, project) 
-        self.show_page(self.current_page)
+        self.show_page(PageAddTask(self, project))
 
     def showTask(self, project, task):
-        self.current_page.hide()
-        self.current_page = ViewTask(self, task, project)
-        self.show_page(self.current_page)
+        self.show_page(ViewTask(self, task, project))
+
+# The main app just encapulates some of the weirdness in instantiating the UI components
+class App():
+    def main(self, windowX, windowY):
+        root = tk.Tk()
+        main = UIFacade(root)
+        main.pack(side="top", fill="both", expand=True)
+        root.wm_geometry(str(windowX) + "x" + str(windowY))
+        root.mainloop()  
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    main = UIFacade(root)
-    main.pack(side="top", fill="both", expand=True)
-    root.wm_geometry("400x400")
-    root.mainloop()
+    App().main(600, 600)
