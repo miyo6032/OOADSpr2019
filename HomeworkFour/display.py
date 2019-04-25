@@ -28,7 +28,7 @@ class Page1(Page):
        buttonframe.pack(side="top", fill="both", expand=False)
        container.pack(side="top", fill="both", expand=True)
        
-       b5 = tk.Button(buttonframe, text="Project One") 
+       b5 = tk.Button(buttonframe, text="Project One", command=self.create_tasks_window) 
        b5.pack(side="top", fill="both", expand=True)
 
        b6 = tk.Button(buttonframe, text="Project Two") 
@@ -41,8 +41,117 @@ class Page1(Page):
        b8.pack(side="top", fill="both", expand=True)
 
        b4 = tk.Button(buttonframe, text="Add Project", command=self.create_window)
-       b4.pack(side="bottom") 
+       b4.pack(side="bottom")  
 
+
+    def create_tasks_window(self):
+
+      t = tk.Toplevel(self)
+      t.wm_title("Project Details")
+      
+      nameFrame = tk.LabelFrame(t, pady = 0)  
+      nameFrame.pack(side="top", fill="both")
+
+      detailsFrame = tk.LabelFrame(t, pady = 0) 
+      detailsFrame.pack(side="left", fill="both")
+      
+      tasksFrame = tk.LabelFrame(t, pady=0) 
+      tasksFrame.pack(side="left", fill="both") 
+      
+      miniFrame = tk.LabelFrame(tasksFrame, pady=0) 
+      miniFrame.pack(side="bottom", fill="both")
+
+      l = tk.Label(detailsFrame, text="Project Details", bg="white", fg="black", borderwidth=5, relief="groove")
+      l.pack(side="top", fill="both", expand=True)
+      label = tk.Label(self, text="Project Name")
+
+      projectTitle=StringVar()
+      projectTitle.set("Project Title")
+      labelDir=Label(nameFrame, textvariable=projectTitle, height=4, bg="white", fg="black", borderwidth=5, relief="groove")
+      labelDir.pack(side="top", fill="both", expand=True)
+
+      projDeadline=StringVar()
+      projDeadline.set("Project Deadline")
+      labelDir=Label(detailsFrame, textvariable=projDeadline, height=4, bg="white", fg="black", borderwidth=5, relief="groove")
+      labelDir.pack(side="top", fill="both", expand=True)
+
+      #projDeadlineField=StringVar(None)
+      #dirname=Entry(t,textvariable=projDeadlineField,width=50)
+      #dirname.pack(side="top", fill="both", expand=True) 
+
+      projDeadline=StringVar()
+      projDeadline.set("Active Team Members")
+      labelDir=Label(detailsFrame, textvariable=projDeadline, height=4, bg="white", fg="black", borderwidth=5, relief="groove")
+      labelDir.pack(side="top", fill="both", expand=True)
+
+      #projDeadlineField=StringVar(None)
+      #dirname=Entry(t,textvariable=projDeadlineField,width=50)
+      #dirname.pack(side="top", fill="both", expand=True)   
+
+      addTasks = tk.Button(miniFrame, text="Main Menu")
+      addTasks.pack(side="left", fill="both")
+
+      addTasks = tk.Button(miniFrame, text="Add Tasks", command=self.create_add_tasks_window)
+      addTasks.pack(side="right", fill="both")
+
+    def create_add_tasks_window(self): 
+      t = tk.Toplevel(self)
+      t.wm_title("Add Tasks Page") 
+
+      headerFrame = tk.LabelFrame(t, pady = 0)  
+      headerFrame.pack(side="top", fill="both")
+
+      l = tk.Label(headerFrame, text="TASKS")
+      l.pack(side="top", fill="both", expand=True) 
+      label = tk.Label(self, text="Project Name") 
+
+      taskTitle=StringVar()
+      taskTitle.set("Task Title")
+      labelDir=Label(t, textvariable=taskTitle, height=4)
+      labelDir.pack(side="top", fill="both", expand=True)
+
+      taskTitleField=StringVar(None)
+      dirname=Entry(t,textvariable=taskTitleField,width=50)
+      dirname.pack(side="top", fill="both", expand=True) 
+
+      taskDescription=StringVar()
+      taskDescription.set("Task Description")
+      labelDir=Label(t, textvariable=taskDescription, height=4)
+      labelDir.pack(side="top", fill="both", expand=True)
+
+      taskDescriptionField=StringVar(None)
+      dirname=Entry(t,textvariable=taskDescriptionField,width=50)
+      dirname.pack(side="top", fill="both", expand=True)  
+
+      taskDeadline=StringVar()
+      taskDeadline.set("Task Deadline")
+      labelDir=Label(t, textvariable=taskDeadline, height=4)
+      labelDir.pack(side="top", fill="both", expand=True)
+
+      taskDeadlineField=StringVar(None)
+      dirname=Entry(t,textvariable=taskDeadlineField,width=50)
+      dirname.pack(side="top", fill="both", expand=True)  
+
+      taskMembers=StringVar()
+      taskMembers.set("Members Associated to Task")
+      labelDir=Label(t, textvariable=taskMembers, height=4)
+      labelDir.pack(side="top", fill="both", expand=True)
+
+      taskMembersField=StringVar(None)
+      dirname=Entry(t,textvariable=taskMembersField,width=50)
+      dirname.pack(side="top", fill="both", expand=True)  
+
+      choicesFrame = tk.LabelFrame(t, pady = 0)  
+      choicesFrame.pack(side="top", fill="both")
+
+      confirmTask = tk.Button(choicesFrame, text="Confirm Task")
+      confirmTask.pack(side="bottom", fill="both")
+
+      cancel = tk.Button(choicesFrame, text="Cancel")
+      cancel.pack(side="bottom", fill="both")
+
+
+    
     def create_window(self):
         t = tk.Toplevel(self)
         t.wm_title("New Project")
@@ -52,12 +161,6 @@ class Page1(Page):
 
         label = tk.Label(self, text="Project Name")
         
-        # label_input = tk.Label(self, text="Search")
-        # e = tk.Entry(t)
-        # #e.insert(0, "a default value")
-        # e.pack(side="top", fill="both", padx=100)
-        # # e.grid(row=0, column=1)
-
         labelText=StringVar()
         labelText.set("Project Title")
         labelDir=Label(t, textvariable=labelText, height=4)
@@ -66,8 +169,6 @@ class Page1(Page):
         directory=StringVar(None)
         dirname=Entry(t,textvariable=directory,width=50)
         dirname.pack(side="top", fill="both", expand=True) 
-
-        #namebox.insert(END, names + '\n')
         
         labelText=StringVar()
         labelText.set("Project Description")
@@ -96,10 +197,6 @@ class Page1(Page):
         dirname=Entry(t,textvariable=directory,width=50)
         dirname.pack(side="top", fill="both", expand=True) 
 
-        #buttonframe = tk.Frame(self)
-        #save = tk.Button(buttonframe, text="Save Project")
-        #save.pack(side="left")
-
 class Page2(Page):
    def __init__(self, *args, **kwargs):
        Page.__init__(self, *args, **kwargs)
@@ -125,7 +222,6 @@ class MainView(tk.Frame):
         p2 = Page2(self)
         p3 = Page3(self) 
         p4 = Page4(self) 
-        
 
         buttonframe = tk.Frame(self)
         container = tk.Frame(self)
@@ -138,19 +234,8 @@ class MainView(tk.Frame):
         p4.place(in_=container, x=0, y=0, relwidth=1, relheight=1) 
 
         b1 = tk.Button(buttonframe, text="Projects", command=p1.lift)
-        #b2 = tk.Button(buttonframe, text="Page 2", command=p2.lift)
-        #b3 = tk.Button(buttonframe, text="Page 3", command=p3.lift)
-        #b4 = tk.Button(buttonframe, text="Page 4", command=p4.lift) 
-        
 
         b1.pack(side="left")
-        #b2.pack(side="left")
-        #b3.pack(side="left")
-        
-
-        #b4.pack(side="left") 
-        
-
         p1.show()
 
 if __name__ == "__main__":
