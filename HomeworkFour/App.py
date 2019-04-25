@@ -1,6 +1,7 @@
 import pymongo as pm
 import tkinter as tk
 from tkinter import StringVar, Label, Entry
+from abc import ABC, abstractmethod
 
 # Responsible for holding task data
 class Task:
@@ -125,10 +126,20 @@ class Database(Subject):
 # Begin UI and Front End Elements
 #
 
-class Page(tk.Frame):
+# The multiple inheritance is required because the page needs to be
+# abstract and a tkinter Frame.
+class Page(tk.Frame, ABC):
     def __init__(self, ui_facade, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
         self.ui_facade = ui_facade
+        # Some constants to maintain consistency between pages
+        self.title_font_size = 20
+        
+        self.generate_page()
+
+    @abstractmethod
+    def generate_page(self):
+        pass
 
     # "Hides" the frame by destroying it
     def hide(self):
@@ -138,52 +149,48 @@ class Page(tk.Frame):
 class PageAddProject(Page):
     def __init__(self, *args, **kwargs):
         Page.__init__(self, *args, **kwargs)
-        t = self
-        l = tk.Label(t, text="NEW PROJECT")
-        l.pack(side="top", fill="both", expand=True) 
 
-        title=StringVar()
-        title.set("Project Title")
-        labelDir=Label(t, textvariable=title, height=4)
-        labelDir.pack(side="top", fill="both", expand=True)
+    def generate_page(self):
+        new_project_label = tk.Label(self, text="NEW PROJECT", anchor='w', font=("Arial", self.title_font_size))
+        new_project_label.pack(side="top", fill="both", expand=True) 
+
+        labelDir=Label(self, text="Project Title", height=4, anchor='w')
+        labelDir.pack(side="top", fill="x", expand=True)
 
         inputTitle=StringVar(None)
-        self.titleField=Entry(t,textvariable=inputTitle,width=50)
+        self.titleField=Entry(self,textvariable=inputTitle,width=50)
         self.titleField.pack(side="top", fill="both", expand=True) 
 
-        #namebox.insert(END, names + '\n')
-        
-        description=StringVar()
-        description.set("Project Description")
-        labelDir=Label(t, textvariable=description, height=4)
-        labelDir.pack(side="top", fill="both", expand=True)
+        projectDescription=Label(self, text="Project Description", height=4, anchor='w')
+        projectDescription.pack(side="top", fill="both", expand=True)
 
         inputDescription=StringVar(None)
-        self.descriptionField=Entry(t,textvariable=inputDescription,width=50)
+        self.descriptionField=Entry(self,textvariable=inputDescription,width=50)
         self.descriptionField.pack(side="top", fill="both", expand=True)
 
-        deadline=StringVar()
-        deadline.set("Project Deadline")
-        labelDir=Label(t, textvariable=deadline, height=4)
-        labelDir.pack(side="top", fill="both", expand=True)
+        projectDeadline=Label(self, text="Project Deadline", height=4, anchor='w')
+        projectDeadline.pack(side="top", fill="both", expand=True)
 
         deadlineInput=StringVar(None)
-        self.deadlineField=Entry(t,textvariable=deadlineInput,width=50)
+        self.deadlineField=Entry(self,textvariable=deadlineInput,width=50)
         self.deadlineField.pack(side="top", fill="both", expand=True)
 
-        team=StringVar()
-        team.set("Project Team Members")
-        labelDir=Label(t, textvariable=team, height=4)
-        labelDir.pack(side="top", fill="both", expand=True)
+        teamMembers=Label(self, text="Project Team Members", height=4, anchor='w')
+        teamMembers.pack(side="top", fill="both", expand=True)
 
         teamInput=StringVar(None)
-        self.teamField=Entry(t,textvariable=teamInput,width=50)
+        self.teamField=Entry(self,textvariable=teamInput,width=50)
         self.teamField.pack(side="top", fill="both", expand=True)
 
-        buttonsFrame = tk.Frame()
+        # For the buttons 
+        buttonsFrame = tk.Frame(self)
+        buttonsFrame.pack(side="bottom", fill="x")
 
-        saveButton = tk.Button(text="Save Project", command=self.saveProject) 
-        saveButton.pack(side="bottom")
+        saveButton = tk.Button(buttonsFrame, text="Save Project", command=self.saveProject) 
+        saveButton.pack(side="left")
+
+        cancel = tk.Button(buttonsFrame, text="Cancel", command=self.ui_facade.show_main_page) 
+        cancel.pack(side="right")
 
     # Saves project to the database, and returns back to the main page
     def saveProject(self): 
@@ -201,16 +208,13 @@ class PageMain(Page):
     def __init__(self, *args, **kwargs):
         Page.__init__(self, *args, **kwargs)
 
-        self.update()
-
     # Where all of the page element generation happens
     # Basically loads the page
-    def update(self):
+    def generate_page(self):
         database = Database.get_instance()
 
         # Generate title
-        title_font_size = 20
-        main_page_title = tk.Label(self, text = "Projects", anchor='w', font=("Arial", title_font_size)).pack(fill='both')
+        main_page_title = tk.Label(self, text = "Projects", anchor='w', font=("Arial", self.title_font_size)).pack(fill='both')
 
         if(hasattr(self, '__buttonframe')):
             self.__buttonframe.destroy();
@@ -251,19 +255,23 @@ class PageMain(Page):
         confirm_delete_text.pack(side="top")
 
         options_frame = tk.Frame(confirm_delete_window)
-        options_frame.pack(side="bottom")
+        options_frame.pack(side="bottom", fill="both")
 
-        yes_button = tk.Button(options_frame, text="Yes, Delete", command=lambda : self.delete_project(project_name, confirm_delete_window.destroy))
+        yes_button = tk.Button(options_frame, text="Yes, Delete", command=lambda : self.delete_project(project_name, confirm_delete_window))
         yes_button.pack(side="left")
 
         no_button = tk.Button(options_frame, text="Cancel", command=confirm_delete_window.destroy)
         no_button.pack(side="right")
+        
+        # This window is the only interactable window
+        confirm_delete_window.grab_set()
 
     # Delete the project from the database, updates the window, and closes the delete confirm window
-    def delete_project(self, project_name, delete_function):
+    def delete_project(self, project_name, popup_window):
         Database.get_instance().delete_project(project_name)
         self.ui_facade.show_main_page()
-        delete_function()
+        popup_window.grab_release()
+        popup_window.destroy()
 
 class UIFacade(tk.Frame):
     def __init__(self, *args, **kwargs):
