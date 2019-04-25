@@ -17,6 +17,18 @@ class Task:
             self.__description = task["description"]
             self.__members = task["members"]
 
+    def get_name(self):
+        return self.__name
+
+    def get_deadline(self):
+        return self.__deadline
+
+    def get_description(self):
+        return self.__description
+
+    def get_members(self):
+        return self.__members
+
     def get_json(self):
         return {"name": self.__name, "deadline": self.__deadline, "description": self.__description, "members": self.__members}
 
@@ -117,7 +129,7 @@ class Database(Subject):
         return None
 
     # Finds the project by name to delete
-    def delete_project(self, project_name):
+    def delete_project_by_name(self, project_name):
         self.__saved_projects.delete_one( { "name" : project_name })
 
     # When adding the project, enforces a unique name
@@ -128,7 +140,7 @@ class Database(Subject):
 
     # Update a project by passing in the old and new project
     def update_project(self, project):
-        self.delete_project(project)
+        self.delete_project_by_name(project.get_name())
         self.add_project(project)
 
 #
@@ -239,7 +251,7 @@ class PageMain(Page):
 
         # Generates all of the buttons for each project from the database
         for project in database.get_projects():
-            self.create_project(project.get_name())
+            self.generate_project(project.get_name())
 
         # Add Project button
         add_project_frame = self.generate_frame(self)
@@ -247,7 +259,7 @@ class PageMain(Page):
         self.generate_button(add_project_frame, "Add Project", self.ui_facade.show_add_project).pack(side="left")
 
     # Creates a new project entry with the view and delete buttons
-    def create_project(self, project_name):
+    def generate_project(self, project_name):
         project_frame = self.generate_frame(self)
         project_frame.pack(side="top", fill="x")
 
@@ -277,7 +289,7 @@ class PageMain(Page):
 
     # Delete the project from the database, updates the window, and closes the delete confirm window
     def delete_project(self, project_name, popup_window):
-        Database.get_instance().delete_project(project_name)
+        Database.get_instance().delete_project_by_name(project_name)
         self.ui_facade.show_main_page()
         popup_window.grab_release()
         popup_window.destroy()
@@ -297,8 +309,11 @@ class ProjectDescription(Page):
         detailsFrame = self.generate_frame(self)
         detailsFrame.pack(side="left", fill="both")
 
-        tasksFrame = self.generate_frame(self)
-        tasksFrame.pack(side="left", fill="both", expand=True) 
+        self.tasksFrame = self.generate_frame(self)
+        self.tasksFrame.pack(side="left", fill="both", expand=True) 
+
+        for task in self.project.get_tasks():
+            self.generate_task(task)
 
         # Generate the project details on the side
         self.generate_label(detailsFrame, self.project.get_projectDetails())
@@ -306,11 +321,117 @@ class ProjectDescription(Page):
         self.generate_label(detailsFrame, self.project.get_members())
 
         # Generates the buttons at the bottom
-        miniFrame = self.generate_frame(tasksFrame)
+        miniFrame = self.generate_frame(self.tasksFrame)
         miniFrame.pack(side="bottom", fill="both")
 
         self.generate_button(miniFrame, "Main Menu", self.ui_facade.show_main_page).pack(side="left", fill="both")
-        self.generate_button(miniFrame, "Add Tasks", lambda : ()).pack(side="right", fill="both")
+        self.generate_button(miniFrame, "Add Tasks", lambda : self.ui_facade.showAddTask(self.project)).pack(side="right", fill="both")
+
+    def generate_task(self, task):
+        task_frame = self.generate_frame(self.tasksFrame)
+        task_frame.pack(side="top", fill="x")
+
+        self.generate_label(task_frame, task.get_json()["name"]).pack(side="left", fill="x", expand=True)
+
+        self.generate_button(task_frame, "Delete", lambda : self.show_confirm_delete(task)).pack(side="right")
+        self.generate_button(task_frame, "View", lambda : self.ui_facade.showTask(self.project, task)).pack(side="right")
+
+    # Creates a new project entry with the view and delete buttons
+    def create_project(self, project_name):
+        project_frame = self.generate_frame(self)
+        project_frame.pack(side="top", fill="x")
+
+        self.generate_label(project_frame, project_name).pack(side="left", fill="x", expand=True)
+
+        self.generate_button(project_frame, "Delete", lambda : self.show_confirm_delete(project_name)).pack(side="right", fill="both")
+        
+        project = Database.get_instance().get_project_by_name(project_name)
+        self.generate_button(project_frame, "View", lambda : self.ui_facade.showProjectDetails(project)).pack(side="right", fill="both")
+
+    # Shows a dialogue for confirming the deletion of a project
+    def show_confirm_delete(self, task):
+        confirm_delete_window = tk.Toplevel()
+        confirm_delete_window.wm_title("Delete Task?")
+
+        self.generate_label(confirm_delete_window, "Delete Task " + task.get_json()["name"] + "?").pack(side="top")
+
+        options_frame = self.generate_frame(confirm_delete_window)
+        options_frame.pack(side="bottom", fill="both")
+
+        # Yes and no buttons
+        self.generate_button(options_frame, "Yes, Delete", lambda : self.delete_task(task, confirm_delete_window)).pack(side="left")
+        self.generate_button(options_frame, "Cancel", confirm_delete_window.destroy).pack(side="right")
+        
+        # This window is the only interactable window
+        confirm_delete_window.grab_set()
+
+    # Delete the project from the database, updates the window, and closes the delete confirm window
+    def delete_task(self, task, popup_window):
+        self.project.remove_task(task)
+        Database.get_instance().update_project(self.project)
+        self.ui_facade.showProjectDetails(self.project)
+        popup_window.grab_release()
+        popup_window.destroy()
+
+#
+# Represents the page where the user creates a new task for a certain project
+#
+class PageAddTask(Page):
+    def __init__(self, ui_facade, project, *args, **kwargs):
+        self.project = project
+        Page.__init__(self, ui_facade, *args, **kwargs)
+
+    def generate_page(self):
+        self.generate_title(self, "New Task")
+
+        self.generate_label(self, "Task Title")
+        self.titleField = self.generate_entry(self)
+        self.generate_label(self, "Task Description")
+        self.descriptionField = self.generate_entry(self)
+        self.generate_label(self, "Task Deadline")
+        self.deadlineField= self.generate_entry(self)
+        self.generate_label(self, "Associated Members")
+        self.members = self.generate_entry(self)
+
+        # For the buttons 
+        buttonsFrame = self.generate_frame(self)
+        buttonsFrame.pack(side="bottom", fill="x")
+
+        self.generate_button(buttonsFrame, "Add Task", self.saveTask).pack(side="left")
+        self.generate_button(buttonsFrame, "Cancel", lambda : self.ui_facade.showProjectDetails(self.project)).pack(side="right")
+
+    # Saves task to the database, and returns back to the project page
+    def saveTask(self): 
+        title = self.titleField.get()  
+        description = self.descriptionField.get() 
+        deadline = self.deadlineField.get() 
+        members = self.members.get().split()
+
+        self.project.add_task(Task(name=title, description=description, deadline=deadline, members=members))
+        Database.get_instance().update_project(self.project)
+
+        self.ui_facade.showProjectDetails(self.project)
+
+#
+# Simple task view page
+#
+class ViewTask(Page):
+    def __init__(self, ui_facade, task, project, *args, **kwargs):
+        self.task = task
+        self.project = project
+        Page.__init__(self, ui_facade, *args, **kwargs)
+
+    def generate_page(self):
+        self.generate_title(self, self.task.get_name())
+
+        self.generate_label(self, self.task.get_description())
+        self.generate_label(self, self.task.get_deadline())
+        self.generate_label(self, self.task.get_members())
+
+        button_frame = self.generate_frame(self)
+        button_frame.pack(side="bottom", fill="x")
+
+        self.generate_button(button_frame, "Back to Project", lambda : self.ui_facade.showProjectDetails(self.project))
 
 #
 # Responsible for mediating page changes
@@ -318,43 +439,44 @@ class ProjectDescription(Page):
 class UIFacade(tk.Frame):
     def __init__(self, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
-        self.add_project_page = None
-        self.main_page = PageMain(self)
-        self.projectDetails = None 
-        self.pages = [self.add_project_page, self.main_page, self.projectDetails]
+        self.current_page = PageMain(self)
 
         self.container = tk.Frame(self)
         self.container.pack(side="top", fill="both", expand=True)
 
         # Place the main page
-        self.show_page(self.main_page)
+        self.show_page(self.current_page)
 
     # Place the page into the ui_facade container
     def show_page(self, page):
         page.place(in_=self.container, x=0, y=0, relwidth=1, relheight=1)  
-    
-    def close_all_pages(self):
-        for page in self.pages:
-            if(page != None):
-                page.hide()
 
     def show_main_page(self): 
-        self.close_all_pages()
-        self.main_page = PageMain(self) 
-        self.show_page(self.main_page) 
+        self.current_page.hide()
+        self.current_page = PageMain(self) 
+        self.show_page(self.current_page) 
 
     # Hides all pages before opening the page to add projects
     def show_add_project(self):
-        self.close_all_pages()
-
+        self.current_page.hide()
         # To make the page show, instantiate the page first
-        self.add_project_page = PageAddProject(self)
-        self.show_page(self.add_project_page) 
+        self.current_page = PageAddProject(self)
+        self.show_page(self.current_page) 
 
     def showProjectDetails(self, project): 
-        self.close_all_pages() 
-        self.projectDetails = ProjectDescription(self, project) 
-        self.show_page(self.projectDetails)
+        self.current_page.hide()
+        self.current_page = ProjectDescription(self, project) 
+        self.show_page(self.current_page)
+
+    def showAddTask(self, project): 
+        self.current_page.hide()
+        self.current_page = PageAddTask(self, project) 
+        self.show_page(self.current_page)
+
+    def showTask(self, project, task):
+        self.current_page.hide()
+        self.current_page = ViewTask(self, task, project)
+        self.show_page(self.current_page)
 
 if __name__ == "__main__":
     root = tk.Tk()
