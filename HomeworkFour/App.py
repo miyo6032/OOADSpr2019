@@ -11,6 +11,8 @@ from abc import ABC, abstractmethod
 
 # Responsible for holding task data
 class Task:
+    # The constructor allows the Task to be constructed from json (from the database)
+    # or by passing in the arguments directly
     def __init__(self, name = "", deadline = 0, description = "", members = [], task = None):
         if task == None:
             self.__name = name
@@ -45,8 +47,10 @@ class Task:
     def __repr__(self):
         return self.__str__()
 
-# Responsible for keeping track of its tasks
+# Responsible for keeping track of its tasks, and other project attributes
 class Project:
+    # The constructor allows the Project to be constructed from json (from the database)
+    # or by passing in the arguments directly
     def __init__(self, name = "", deadline = 0, description = "", members = [], project = None):
         self.__tasks = []
         if project == None:
@@ -104,9 +108,14 @@ class Database():
             raise Exception("Attempt to more than one Database singleton instance.")
         
         Database.__instance = self
-        db_server = pm.MongoClient("mongodb://localhost:27017/")
-        the_database = db_server["project_database"]
-        self.__saved_projects = the_database["projects"]
+
+        database_connection = "mongodb://localhost:27017/";
+        database_name = "project_database"
+        database_collection = "projects"
+
+        db_server = pm.MongoClient(database_connection)
+        the_database = db_server[database_name]
+        self.__saved_projects = the_database[database_collection]
 
     @staticmethod
     def get_instance(): # Can be accessed anywhere to get the instance of database
@@ -155,7 +164,8 @@ class Page(tk.Frame, ABC):
         self.generate_page()
 
     # This method needs to be implmented by subclasses to specify
-    # which elements a page requries
+    # which elements a page requries, which is similar to the 
+    # factory method pattern
     @abstractmethod
     def generate_page(self):
         pass
@@ -438,6 +448,9 @@ class PageViewTask(Page):
 class UIFacade(tk.Frame):
     def __init__(self, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
+
+        # This is the reference to the page currently loaded, and
+        # uses composition to switch between pages dynamically
         self.__current_page = PageMain(self)
 
         # This is the frame that contains each page required
@@ -446,7 +459,7 @@ class UIFacade(tk.Frame):
 
         self.show_page(PageMain(self))
 
-    # Place the page into the ui_facade __container
+    # Place the page into the ui_facade container
     def show_page(self, page):
         self.__current_page.hide()
         page.place(in_=self.__container, x=0, y=0, relwidth=1, relheight=1)  
@@ -469,7 +482,7 @@ class UIFacade(tk.Frame):
     def show_task(self, project, task):
         self.show_page(PageViewTask(self, task, project))
 
-# The main app just encapulates some of the weirdness in instantiating the UI components
+# The main app simply encapulates some of the weirdness in instantiating the Tkinter UI components
 class App():
     def main(self, window_x, window_y):
         root = tk.Tk()
